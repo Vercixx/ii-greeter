@@ -60,6 +60,7 @@ install -m755 "$SRC/ii-greeter-session" "$SRC/ii-greeter-sync" "$BIN/"
 user_fonts="$home/.local/share/fonts/illogical-impulse-google-sans-flex"
 if [[ -d $user_fonts ]]; then
     rm -rf "$FONTS"
+    mkdir -p "$FONTS"
     cp -rT "$user_fonts" "$FONTS"
     chmod -R u=rwX,go=rX "$FONTS"
     fc-cache -f "$FONTS" >/dev/null 2>&1 || true
