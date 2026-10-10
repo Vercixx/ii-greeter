@@ -36,9 +36,9 @@ Singleton {
         lastFile.setText(JSON.stringify({ user: root.user, session: root.session }));
     }
 
+    // greetd joins argv with spaces and runs it via sh, so pass the Exec line as one string.
     function launchCommand() {
-        const exec = root.currentSession.exec.replace(/\s+%[fFuUdDnNickvm]/g, "");
-        return ["/bin/sh", "-c", `exec ${exec}`];
+        return [root.currentSession.exec.replace(/\s+%[fFuUdDnNickvm]/g, "")];
     }
 
     function launchEnvironment() {
