@@ -81,4 +81,6 @@ command = "$BIN/ii-greeter-session"
 user = "$greeter_user"
 EOF
 
+runuser -u "$user" -- env HOME="$home" "$BIN/ii-greeter-sync" || true
+
 echo "Greeter installed. Enable the greetd service and disable your current display manager to use it."
