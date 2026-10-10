@@ -43,6 +43,9 @@ for cmd in greetd agreety Hyprland qs; do
     command -v "$cmd" >/dev/null || die "Missing $cmd. Install it with your package manager first."
 done
 
+[[ -f $SRC/modules/common/widgets/shapes/ShapeCanvas.qml ]] \
+    || die "Missing shapes submodule in $SRC. Clone with --recurse-submodules or run: git submodule update --init --recursive"
+
 greeter_user=$(toml_get default_session user)
 greeter_user=${greeter_user:-greeter}
 getent passwd "$greeter_user" >/dev/null || die "greetd user '$greeter_user' does not exist."
