@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+dir=${II_GREETER_USER_DIR:-/var/lib/ii-greeter/users/$(id -un)}
+[[ -w $dir ]] || exit 0
+
+config=${XDG_CONFIG_HOME:-$HOME/.config}/illogical-impulse/config.json
+colors=${XDG_STATE_HOME:-$HOME/.local/state}/quickshell/user/generated/colors.json
+[[ -f $config ]] || exit 0
+
+wallpaper=$(jq -r '.background.wallpaperPath // ""' "$config")
+if [[ $wallpaper =~ \.(mp4|webm|mkv|avi|mov)$ ]]; then
+    wallpaper=$(jq -r '.background.thumbnailPath // ""' "$config")
+fi
+
+umask 027
+tmp=$(mktemp -d "$dir/.sync.XXXXXX")
+trap 'rm -rf "$tmp"' EXIT
+
+target=""
+if [[ -f $wallpaper ]]; then
+    name=${wallpaper##*/}
+    ext=${name##*.}
+    [[ $ext == "$name" ]] && ext=img
+    target="$dir/wallpaper.$ext"
+    cp "$wallpaper" "$tmp/wallpaper.$ext"
+fi
+[[ -f $colors ]] && cp "$colors" "$tmp/colors.json"
+jq --arg wp "$target" '{
+    appearance: (.appearance // {}),
+    background: { widgets: { clock: (.background.widgets.clock // {}) }, wallpaperPath: $wp },
+    lock: (.lock // {}),
+    time: (.time // {})
+}' "$config" > "$tmp/config.json"
+
+mv -f "$tmp"/* "$dir"/
+for f in "$dir"/wallpaper.*; do
+    [[ $f == "$target" ]] || rm -f "$f"
+done

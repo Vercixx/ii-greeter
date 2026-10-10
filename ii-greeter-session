@@ -1,0 +1,11 @@
+#!/bin/sh
+export II_GREETER_DIR="${II_GREETER_DIR:-/usr/local/share/ii-greeter}"
+export II_GREETER_MARKER=/var/lib/ii-greeter/state/ok
+export XDG_CACHE_HOME=/var/lib/ii-greeter/state/cache
+
+rm -f "$II_GREETER_MARKER"
+Hyprland --config "$II_GREETER_DIR/hyprland.lua"
+[ -e "$II_GREETER_MARKER" ] && exit 0
+
+# Greeter crashed or Hyprland rejected the config: fall back to greetd's text greeter.
+exec agreety --cmd /bin/sh
