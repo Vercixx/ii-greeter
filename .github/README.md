@@ -1,6 +1,6 @@
 <div align="center">
 
-## <img src=".github/assets/greeter.svg" alt="illogical-impulse greeter logo" style="float:left; width:400;">
+## <img src="assets/greeter.svg" alt="illogical-impulse greeter logo" style="float:left; width:400;">
 
 **Greeter for [illogical-impulse dotfiles](https://github.com/Vercixx/illogical-impulse) based on greetd**
 
