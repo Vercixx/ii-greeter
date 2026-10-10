@@ -232,55 +232,72 @@ MouseArea {
         signal picked(string key)
 
         readonly property bool open: root.openSelector === selector
-        implicitWidth: selectorRow.implicitWidth + 24
+        horizontalPadding: 12
         onClicked: root.openSelector = open || options.length < 2 ? null : selector
 
-        contentItem: Row {
-            id: selectorRow
-            anchors.centerIn: parent
+        Behavior on implicitWidth {
+            animation: Appearance.animation.elementResize.numberAnimation.createObject(this)
+        }
+
+        contentItem: RowLayout {
             spacing: 6
+            clip: true
             MaterialSymbol {
-                anchors.verticalCenter: parent.verticalCenter
                 fill: 1
                 text: selector.symbol
                 iconSize: Appearance.font.pixelSize.huge
                 color: Appearance.colors.colOnSurfaceVariant
             }
             StyledText {
-                anchors.verticalCenter: parent.verticalCenter
                 text: selector.options.find(o => o.key === selector.currentKey)?.label ?? ""
                 color: Appearance.colors.colOnSurfaceVariant
+                animateChange: true
             }
             MaterialSymbol {
-                anchors.verticalCenter: parent.verticalCenter
                 visible: selector.options.length > 1
-                text: selector.open ? "expand_more" : "expand_less"
+                text: "expand_less"
+                rotation: selector.open ? 180 : 0
                 iconSize: Appearance.font.pixelSize.larger
                 color: Appearance.colors.colOnSurfaceVariant
+                Behavior on rotation {
+                    animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
+                }
             }
         }
 
         StyledRectangularShadow {
             target: popup
             visible: popup.visible
+            opacity: popup.opacity
         }
         Rectangle {
             id: popup
-            visible: selector.open
             anchors {
                 bottom: parent.top
                 bottomMargin: 18
                 horizontalCenter: parent.horizontalCenter
             }
+            opacity: selector.open ? 1 : 0
+            visible: opacity > 0
+            clip: true
             color: Appearance.m3colors.m3surfaceContainer
             radius: Appearance.rounding.normal
             implicitWidth: Math.max(popupColumn.implicitWidth, selector.width) + 16
-            implicitHeight: popupColumn.implicitHeight + 16
+            implicitHeight: selector.open ? popupColumn.implicitHeight + 16 : 0
+
+            Behavior on opacity {
+                animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
+            }
+            Behavior on implicitHeight {
+                animation: Appearance.animation.elementResize.numberAnimation.createObject(this)
+            }
 
             ColumnLayout {
                 id: popupColumn
                 anchors {
-                    fill: parent
+                    left: parent.left
+                    right: parent.right
+                    bottom: parent.bottom
                     margins: 8
                 }
                 spacing: 2
