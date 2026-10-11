@@ -1,3 +1,20 @@
+local function read(path)
+    local f = io.open(path)
+    if not f then return "" end
+    local text = f:read("a")
+    f:close()
+    return text
+end
+
+local eonos = ("\n" .. read("/etc/os-release")):match("\nID=eonos\n")
+
+local xkb = eonos and read("/etc/X11/xorg.conf.d/00-keyboard.conf") or ""
+
+-- VMware/VirtualBox fix for eonOS
+if eonos and ("\n" .. read("/proc/modules")):find("\nvmwgfx ") then
+    hl.env("LIBGL_ALWAYS_SOFTWARE", "1")
+end
+
 hl.monitor({
     output = "",
     mode = "preferred",
@@ -18,7 +35,8 @@ hl.config({
     },
     animations = { enabled = false },
     input = {
-        kb_layout = "us",
+        kb_layout = xkb:match('"XkbLayout"%s+"([^"]+)"') or "us",
+        kb_options = xkb:match('"XkbOptions"%s+"([^"]+)"') or "",
         numlock_by_default = true
     },
     misc = {
