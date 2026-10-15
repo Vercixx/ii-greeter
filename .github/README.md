@@ -28,7 +28,7 @@ If you're using an unmodified version by [end-4](https://github.com/end-4/dots-h
 > 
 > `jq`, `greetd`. Install `greetd-agreety` if Agreety is not bundled with `greetd` by default (typical on Arch)
 > 
-> If you're not using illogical-impulse, you'll also need to manually install fonts (Material Symbols Rounded, Google Sans Flex, Space Grotesk)
+> If you're not using illogical-impulse, you'll also need to manually install fonts (Material Symbols Rounded, Rubik, Space Grotesk)
 > and Hyprland 0.55 or newer + Quickshell. Refer to `sdata` directory in illogical-impulse repository.
 
 ```
