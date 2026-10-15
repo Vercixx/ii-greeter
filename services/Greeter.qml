@@ -50,10 +50,10 @@ Singleton {
 
     function power(action) {
         if (root.devMode) {
-            console.log(`[Greeter] dev mode: skipping loginctl ${action}`);
+            console.log(`[Greeter] dev mode: skipping systemctl ${action}`);
             return;
         }
-        Quickshell.execDetached(["loginctl", action]);
+        Quickshell.execDetached(["systemctl", action]);
     }
 
     FileView {
