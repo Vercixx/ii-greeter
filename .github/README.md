@@ -10,7 +10,7 @@
 <div align="center"> 
 </div>
 
-<img width="2560" height="1440" alt="Greeter showcase" src="https://github.com/user-attachments/assets/6b1138a3-4883-412a-9e94-0b1cf62869b0" />
+<img width="2560" height="1440" alt="Greeter showcase" src="https://github.com/user-attachments/assets/d744a6d2-6c46-49d6-a450-05078d4742c7" />
 
 
 ---
