@@ -332,17 +332,22 @@ MouseArea {
         }
 
         StyledRectangularShadow {
+            parent: root
+            z: 1
             target: popup
             visible: popup.visible
             opacity: popup.opacity
         }
         Rectangle {
             id: popup
-            anchors {
-                bottom: parent.top
-                bottomMargin: 18
-                horizontalCenter: parent.horizontalCenter
+            parent: root
+            z: 2
+            readonly property point origin: {
+                bottomIsland.x; bottomIsland.y; bottomIsland.scale; selector.x; selector.width;
+                return selector.mapToItem(root, selector.width / 2, 0);
             }
+            x: Math.round(origin.x - width / 2)
+            y: Math.round(origin.y - height - 18)
             opacity: selector.open ? 1 : 0
             visible: opacity > 0
             clip: true
