@@ -89,6 +89,7 @@ Singleton {
                     property real extraZoom: 1.1
                 }
                 property bool materialShapeChars: true
+                property int revealTimeout: 10
             }
 
             property JsonObject time: JsonObject {

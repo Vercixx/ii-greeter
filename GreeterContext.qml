@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Services.Greetd
 import qs.services
+import qs.modules.common
 
 Scope {
     id: root
@@ -20,8 +21,15 @@ Scope {
         root.currentText = "";
     }
 
+    property bool revealed: false
+
     function resetClearTimer() {
-        passwordClearTimer.restart();
+        root.reveal();
+    }
+
+    function reveal() {
+        root.revealed = true;
+        inactivityTimer.restart();
     }
 
     function reset() {
@@ -38,6 +46,7 @@ Scope {
         root.reset();
         root.message = message;
         root.showFailure = true;
+        root.reveal();
         root.failed();
     }
 
@@ -59,15 +68,22 @@ Scope {
     }
 
     Timer {
-        id: passwordClearTimer
-        interval: 10000
-        onTriggered: root.clearText()
+        id: inactivityTimer
+        interval: Config.options.lock.revealTimeout * 1000
+        onTriggered: {
+            if (root.inProgress || root.awaitingResponse) {
+                restart();
+                return;
+            }
+            root.clearText();
+            root.revealed = false;
+        }
     }
 
     onCurrentTextChanged: {
-        if (currentText.length > 0)
-            showFailure = false;
-        passwordClearTimer.restart();
+        if (currentText.length === 0) return;
+        showFailure = false;
+        root.reveal();
     }
 
     Connections {
@@ -94,6 +110,7 @@ Scope {
             root.message = message;
             root.awaitingResponse = true;
             root.inProgress = false;
+            root.reveal();
             root.shouldReFocus();
         }
 

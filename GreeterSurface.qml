@@ -12,9 +12,19 @@ import qs.modules.ii.lock
 MouseArea {
     id: root
     required property GreeterContext context
+    readonly property bool revealed: context.revealed
     property Item openSelector: null
+    property bool sessionMenuOpen: false
+
+    onRevealedChanged: {
+        if (revealed) return;
+        openSelector = null;
+        sessionMenuOpen = false;
+        forceFieldFocus();
+    }
 
     function forceFieldFocus() {
+        if (root.sessionMenuOpen) return;
         passwordBox.forceActiveFocus();
     }
     Connections {
@@ -26,30 +36,32 @@ MouseArea {
     hoverEnabled: true
     acceptedButtons: Qt.LeftButton
     onPressed: mouse => {
+        root.context.reveal();
         root.openSelector = null;
         forceFieldFocus();
     }
+    // Mapping the surface under a still cursor also sends a hover event
+    property point lastMousePos: Qt.point(-1, -1)
     onPositionChanged: mouse => {
+        const moved = lastMousePos.x >= 0 && Math.abs(mouse.x - lastMousePos.x) + Math.abs(mouse.y - lastMousePos.y) > 2;
+        lastMousePos = Qt.point(mouse.x, mouse.y);
+        if (moved) root.context.reveal();
         forceFieldFocus();
     }
 
-    property real toolbarScale: 0.9
-    property real toolbarOpacity: 0
-    Behavior on toolbarScale {
-        NumberAnimation {
-            duration: Appearance.animation.elementMove.duration
-            easing.type: Appearance.animation.elementMove.type
-            easing.bezierCurve: Appearance.animationCurves.expressiveFastSpatial
-        }
+    property bool shown: false
+    property real contentScale: (shown && revealed) ? 1 : 0.95
+    property real contentOpacity: (shown && revealed) ? 1 : 0
+    Behavior on contentScale {
+        animation: Appearance.animation.lockReveal.numberAnimation.createObject(this)
     }
-    Behavior on toolbarOpacity {
-        animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
+    Behavior on contentOpacity {
+        animation: Appearance.animation.lockReveal.numberAnimation.createObject(this)
     }
 
     Component.onCompleted: {
         forceFieldFocus();
-        toolbarScale = 1;
-        toolbarOpacity = 1;
+        shown = true;
     }
 
     Keys.onPressed: event => {
@@ -63,116 +75,172 @@ MouseArea {
         forceFieldFocus();
     }
 
-    Toolbar {
-        id: mainIsland
-        anchors {
-            horizontalCenter: parent.horizontalCenter
-            bottom: parent.bottom
-            bottomMargin: 20
-        }
+    // Kept visible while hidden so the password field holds focus and catches the first key
+    ColumnLayout {
+        id: userColumn
+        anchors.centerIn: parent
+        spacing: 16
+        scale: root.contentScale
+        opacity: root.contentOpacity
 
-        scale: root.toolbarScale
-        opacity: root.toolbarOpacity
+        Item {
+            Layout.alignment: Qt.AlignHCenter
+            implicitWidth: 128
+            implicitHeight: 128
 
-        ToolbarTextField {
-            id: passwordBox
-            Layout.rightMargin: -Layout.leftMargin
-            placeholderText: {
-                if (root.context.message.length > 0)
-                    return root.context.message;
-                return root.context.showFailure ? "Incorrect password" : "Enter password";
-            }
-
-            clip: true
-            font.pixelSize: Appearance.font.pixelSize.small
-            selectedTextColor: materialShapeChars ? "transparent" : Appearance.colors.colOnSecondaryContainer
-            selectionColor: materialShapeChars ? "transparent" : Appearance.colors.colSecondaryContainer
-
-            enabled: !root.context.inProgress
-            echoMode: TextInput.Password
-            inputMethodHints: Qt.ImhSensitiveData
-
-            onTextChanged: root.context.currentText = this.text
-            onAccepted: root.context.tryLogin()
-            Connections {
-                target: root.context
-                function onCurrentTextChanged() {
-                    passwordBox.text = root.context.currentText;
-                }
-            }
-
-            Keys.onPressed: event => {
-                root.context.resetClearTimer();
-            }
-
-            layer.enabled: true
-            layer.effect: OpacityMask {
-                maskSource: Rectangle {
-                    width: passwordBox.width - 8
-                    height: passwordBox.height
-                    radius: height / 2
-                }
-            }
-
-            ErrorShakeAnimation {
-                id: wrongPasswordShakeAnim
-                target: passwordBox
-            }
-            Connections {
-                target: root.context
-                function onFailed() {
-                    wrongPasswordShakeAnim.restart();
-                }
-            }
-
-            property bool materialShapeChars: Config.options.lock.materialShapeChars
-            color: ColorUtils.transparentize(Appearance.colors.colOnLayer1, materialShapeChars ? 1 : 0)
-            Loader {
-                active: passwordBox.materialShapeChars
-                anchors {
-                    fill: parent
-                    leftMargin: passwordBox.padding
-                    rightMargin: passwordBox.padding
-                }
-                sourceComponent: PasswordChars {
-                    length: root.context.currentText.length
-                    selectionStart: passwordBox.selectionStart
-                    selectionEnd: passwordBox.selectionEnd
-                    cursorPosition: passwordBox.cursorPosition
-                }
-            }
-        }
-
-        ToolbarButton {
-            id: confirmButton
-            implicitWidth: height
-            toggled: true
-            enabled: !root.context.inProgress && Greeter.currentSession !== null
-            colBackgroundToggled: Appearance.colors.colPrimary
-
-            onClicked: root.context.tryLogin()
-
-            contentItem: MaterialSymbol {
+            MaterialSymbol {
                 anchors.centerIn: parent
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                iconSize: 24
-                text: "arrow_right_alt"
-                color: confirmButton.enabled ? Appearance.colors.colOnPrimary : Appearance.colors.colSubtext
+                visible: avatar.status !== Image.Ready
+                fill: 1
+                text: "account_circle"
+                iconSize: 128
+                color: Appearance.colors.colOnLayer0
+            }
+            Image {
+                id: avatar
+                anchors.fill: parent
+                visible: status === Image.Ready
+                fillMode: Image.PreserveAspectCrop
+                sourceSize: Qt.size(width, height)
+                source: Greeter.avatarPath
+                asynchronous: true
+                cache: false
+
+                layer.enabled: true
+                layer.effect: OpacityMask {
+                    maskSource: Rectangle {
+                        width: avatar.width
+                        height: avatar.height
+                        radius: width / 2
+                    }
+                }
+            }
+        }
+
+        StyledText {
+            Layout.alignment: Qt.AlignHCenter
+            text: Greeter.displayName
+            color: Appearance.colors.colOnLayer0
+            style: Text.Raised
+            styleColor: Appearance.colors.colShadow
+            font {
+                family: Appearance.font.family.title
+                pixelSize: Appearance.font.pixelSize.title
+                variableAxes: Appearance.font.variableAxes.title
+            }
+        }
+
+        Toolbar {
+            id: mainIsland
+            Layout.alignment: Qt.AlignHCenter
+            Layout.topMargin: 8
+
+            ToolbarTextField {
+                id: passwordBox
+                Layout.rightMargin: -Layout.leftMargin
+                placeholderText: {
+                    if (root.context.message.length > 0)
+                        return root.context.message;
+                    return root.context.showFailure ? "Incorrect password" : "Enter password";
+                }
+
+                clip: true
+                font.pixelSize: Appearance.font.pixelSize.small
+                selectedTextColor: materialShapeChars ? "transparent" : Appearance.colors.colOnSecondaryContainer
+                selectionColor: materialShapeChars ? "transparent" : Appearance.colors.colSecondaryContainer
+
+                enabled: !root.context.inProgress
+                echoMode: TextInput.Password
+                inputMethodHints: Qt.ImhSensitiveData
+
+                onTextChanged: root.context.currentText = this.text
+                onAccepted: {
+                    if (!root.revealed) {
+                        root.context.reveal();
+                        return;
+                    }
+                    root.context.tryLogin();
+                }
+                Connections {
+                    target: root.context
+                    function onCurrentTextChanged() {
+                        passwordBox.text = root.context.currentText;
+                    }
+                }
+
+                Keys.onPressed: event => {
+                    root.context.resetClearTimer();
+                }
+
+                layer.enabled: true
+                layer.effect: OpacityMask {
+                    maskSource: Rectangle {
+                        width: passwordBox.width - 8
+                        height: passwordBox.height
+                        radius: height / 2
+                    }
+                }
+
+                ErrorShakeAnimation {
+                    id: wrongPasswordShakeAnim
+                    target: passwordBox
+                }
+                Connections {
+                    target: root.context
+                    function onFailed() {
+                        wrongPasswordShakeAnim.restart();
+                    }
+                }
+
+                property bool materialShapeChars: Config.options.lock.materialShapeChars
+                color: ColorUtils.transparentize(Appearance.colors.colOnLayer1, materialShapeChars ? 1 : 0)
+                Loader {
+                    active: passwordBox.materialShapeChars
+                    anchors {
+                        fill: parent
+                        leftMargin: passwordBox.padding
+                        rightMargin: passwordBox.padding
+                    }
+                    sourceComponent: PasswordChars {
+                        length: root.context.currentText.length
+                        selectionStart: passwordBox.selectionStart
+                        selectionEnd: passwordBox.selectionEnd
+                        cursorPosition: passwordBox.cursorPosition
+                    }
+                }
+            }
+
+            ToolbarButton {
+                id: confirmButton
+                implicitWidth: height
+                toggled: true
+                enabled: !root.context.inProgress && Greeter.currentSession !== null && root.revealed
+                colBackgroundToggled: Appearance.colors.colPrimary
+
+                onClicked: root.context.tryLogin()
+
+                contentItem: MaterialSymbol {
+                    anchors.centerIn: parent
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    iconSize: 24
+                    text: "arrow_right_alt"
+                    color: confirmButton.enabled ? Appearance.colors.colOnPrimary : Appearance.colors.colSubtext
+                }
             }
         }
     }
 
     Toolbar {
-        id: leftIsland
+        id: bottomIsland
         anchors {
-            right: mainIsland.left
-            top: mainIsland.top
-            bottom: mainIsland.bottom
-            rightMargin: 10
+            horizontalCenter: parent.horizontalCenter
+            bottom: parent.bottom
+            bottomMargin: 20
         }
-        scale: root.toolbarScale
-        opacity: root.toolbarOpacity
+        scale: root.contentScale
+        opacity: root.contentOpacity
+        visible: opacity > 0
 
         Selector {
             symbol: "account_circle"
@@ -187,19 +255,6 @@ MouseArea {
             currentKey: Greeter.session
             onPicked: key => Greeter.chosenSession = key
         }
-    }
-
-    Toolbar {
-        id: rightIsland
-        anchors {
-            left: mainIsland.right
-            top: mainIsland.top
-            bottom: mainIsland.bottom
-            leftMargin: 10
-        }
-
-        scale: root.toolbarScale
-        opacity: root.toolbarOpacity
 
         IconAndTextPair {
             readonly property var battery: UPower.displayDevice
@@ -209,18 +264,29 @@ MouseArea {
         }
 
         IconToolbarButton {
-            onClicked: Greeter.power("suspend")
-            text: "dark_mode"
-        }
-
-        IconToolbarButton {
-            onClicked: Greeter.power("poweroff")
             text: "power_settings_new"
+            onClicked: {
+                root.context.reveal();
+                root.openSelector = null;
+                root.sessionMenuOpen = true;
+            }
         }
+    }
 
-        IconToolbarButton {
-            onClicked: Greeter.power("reboot")
-            text: "restart_alt"
+    FadeLoader {
+        anchors.fill: parent
+        shown: root.sessionMenuOpen
+        sourceComponent: Rectangle {
+            color: ColorUtils.transparentize(Appearance.m3colors.m3background, Appearance.m3colors.darkmode ? 0.05 : 0.12)
+
+            GreeterSessionMenu {
+                anchors.fill: parent
+                context: root.context
+                onClosed: {
+                    root.sessionMenuOpen = false;
+                    root.forceFieldFocus();
+                }
+            }
         }
     }
 

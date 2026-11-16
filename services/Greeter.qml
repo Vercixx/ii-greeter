@@ -30,6 +30,8 @@ Singleton {
     readonly property string userDir: `${dataDir}/users/${user}`
     readonly property string configPath: devMode ? devConfigPath : (user ? `${userDir}/config.json` : "")
     readonly property string colorsPath: devMode ? devColorsPath : (user ? `${userDir}/colors.json` : "")
+    readonly property string avatarPath: devMode ? `${home}/.face` : (user ? `${userDir}/avatar` : "")
+    readonly property string displayName: users.find(u => u.name === user)?.displayName ?? user
 
     function saveLast() {
         if (root.devMode) return;

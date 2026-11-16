@@ -26,6 +26,11 @@ if [[ -f $wallpaper ]]; then
     cp "$wallpaper" "$tmp/wallpaper.$ext"
 fi
 [[ -f $colors ]] && cp "$colors" "$tmp/colors.json"
+avatar=""
+for f in "/var/lib/AccountsService/icons/$(id -un)" "$HOME/.face" "$HOME/.face.icon"; do
+    [[ -f $f ]] && { avatar=$f; break; }
+done
+[[ -n $avatar ]] && cp "$avatar" "$tmp/avatar"
 jq --arg wp "$target" '{
     appearance: (.appearance // {}),
     background: { widgets: { clock: (.background.widgets.clock // {}) }, wallpaperPath: $wp },
@@ -37,3 +42,4 @@ mv -f "$tmp"/* "$dir"/
 for f in "$dir"/wallpaper.*; do
     [[ $f == "$target" ]] || rm -f "$f"
 done
+[[ -n $avatar ]] || rm -f "$dir/avatar"

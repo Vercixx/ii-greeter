@@ -30,6 +30,7 @@ ShellRoot {
 
             GreeterBackground {
                 anchors.fill: parent
+                revealed: greeterContext.revealed
             }
 
             GreeterSurface {
